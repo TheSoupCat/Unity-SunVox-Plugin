@@ -1,0 +1,867 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Docs>
+  <MainFunctions>
+    <Method name="init">
+      <summary>
+        Global sound system initialization.
+      </summary>
+      <param name="config">string with additional configuration in the following format: "option_name=value|option_name=value"; or NULL for auto config</param>
+      <param name="sample_rate">desired sample rate (Hz); min - 44100; the actual rate may be different, if SV_INIT_FLAG_USER_AUDIO_CALLBACK is not set</param>
+      <param name="channels">1 for mono, 2 for stereo</param>
+      <param name="flags">set of flags SV_INIT_FLAG_*</param>
+      <returns>Negative error code or SunVox engine version ((major&lt;&lt;16) + (minor1&lt;&lt;8) + minor2)</returns>
+    </Method>
+    <Method name="deinit">
+      <summary>
+        Global sound system deinitialization.
+      </summary>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+    <Method name="get_sample_rate">
+      <summary>
+        Get current sampling rate(it may differ from the frequency specified in sv_init()/sv_new()).
+      </summary>
+      <returns>Sampling rate or negative error code</returns>
+    </Method>
+    <Method name="update_input">
+      <summary>
+        Handle input ON/OFF requests to enable/disable input ports of the sound card(for example, after the Input module creation).
+        Call it from the main thread only, where the SunVox sound stream is not locked.
+      </summary>
+      <returns>Not specified in documentation</returns>
+    </Method>
+    <Method name="audio_callbackFLOAT">
+      <summary>
+        Ignore the built-in SunVox sound output mechanism and render to memory / file / some other sound system.
+        SV_INIT_FLAG_USER_AUDIO_CALLBACK flag in sv_init() must be set.
+      </summary>
+      <param name = "buf">
+        output buffer of type float (if SV_INIT_FLAG_AUDIO_FLOAT32 is set in sv_init());
+        stereo data will be interleaved in this buffer: LRLR... (LR is a single frame(Left+Right))
+      </param>
+      <param name = "frames">number of frames in destination buffer</param>
+      <param name = "latency"> audio latency (in frames)</param>
+      <param name = "out_time"> buffer output time(in system ticks)</param>
+      <returns>0 - silence, the output buffer is filled with zeros; 1 - the output buffer is filled</returns>
+    </Method>
+    <Method name="audio_callbackSHORT">
+      <summary>
+        Ignore the built-in SunVox sound output mechanism and render to memory / file / some other sound system.
+        SV_INIT_FLAG_USER_AUDIO_CALLBACK flag in sv_init() must be set.
+      </summary>
+      <param name = "buf">
+        output buffer of type int16_t/short (if SV_INIT_FLAG_AUDIO_INT16 is set in sv_init());
+        stereo data will be interleaved in this buffer: LRLR... (LR is a single frame(Left+Right))
+      </param>
+      <param name = "frames">number of frames in destination buffer</param>
+      <param name = "latency"> audio latency (in frames)</param>
+      <param name = "out_time"> buffer output time(in system ticks)</param>
+      <returns>0 - silence, the output buffer is filled with zeros; 1 - the output buffer is filled</returns>
+    </Method>
+    <Method name="audio_callback2">
+      <summary>
+        Send some data to the Input module and receive the filtered data from the Output module.
+      </summary>
+      <param name = "buf">
+        output buffer of type float (if SV_INIT_FLAG_AUDIO_FLOAT32 is set in sv_init());
+        stereo data will be interleaved in this buffer: LRLR... (LR is a single frame(Left+Right))
+      </param>
+      <param name = "frames">number of frames in destination buffer</param>
+      <param name = "latency">audio latency (in frames)</param>
+      <param name = "out_time">buffer output time(in system ticks)</param>
+      <param name = "in_type">
+        input buffer type: 0 - int16_t(16bit integer); 1 - float (32bit floating point)
+        the way this is set up now only works with float buffer in and out, so int in_type MUST be 1
+      </param>
+      <param name = "in_channels">number of input channels</param>
+      <param name = "in_buf"> input buffer; stereo data must be interleaved in this buffer: LRLR</param>
+      <returns>0 - silence, the output buffer is filled with zeros; 1 - the output buffer is filled</returns>
+    </Method>
+    <Method name="open_slot">
+      <summary>
+        Open sound slot. Each slot can contain one independent implementation of the SunVox engine.
+        You can use several slots simultaneously (for example, one slot for music and another for effects). Max number of slots = 16.       
+      </summary>
+      <param name="slot">slot number</param>
+      <returns>Return value: 0 (success) or negative error code</returns>
+    </Method>
+    <Method name="close_slot">
+      <summary>
+        Close sound slot.
+      </summary>
+      <param name = "slot">slot number</param>
+      <returns>Return value: 0 (success) or negative error code</returns>
+    </Method>
+    <Method name="lock_slot">
+      <summary>
+        Lock the specified SunVox slot.Use lock/unlock when you simultaneously read and modify SunVox data from different threads(for the same slot).
+        Some functions(marked as "USE LOCK/UNLOCK") can't work without lock/unlock at all.
+      </summary>
+      <param name = "slot"> slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name="unlock_slot">
+      <summary>
+        Unlock the specified SunVox slot.Use lock/unlock when you simultaneously read and modify SunVox data from different threads(for the same slot).
+        Some functions(marked as "USE LOCK/UNLOCK") can't work without lock/unlock at all.
+      </summary>
+      <param name = "slot"> slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+  </MainFunctions>
+  <ProjectFile>
+    <Method name = "load">
+      <summary>
+        Load SunVox project from file.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="name">file name</param>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+    <Method name = "load_from_memory">
+      <summary>
+        Load SunVox project from memory block.
+      </summary>
+      <param name = "slot">slot number / SunVox object ID</param>
+      <param name="data">byte array with the project (to load from memory)</param>
+      <param name = "data_size">number of bytes to read</param>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+    <Method name = "save">
+      <summary>
+        Save SunVox project.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="name">file name</param>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+  </ProjectFile>
+  <ProjectPlayback>
+    <Method name = "play">
+      <summary>
+        Play from the current position.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "play_from_beginning">
+      <summary>
+        Play from the beginning (line 0).
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "stop">
+      <summary>
+        Stop playing; second call - reset all SunVox activity and switch the engine to standby mode.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "pause">
+      <summary>
+        Pause the audio stream on the specified slot.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "resume">
+      <summary>
+        Resume the audio stream on the specified slot.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "sync_resume">
+      <summary>
+        Wait for sync (pattern effect 0x33 on any slot) and resume the audio stream on the specified slot.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "set_autostop">
+      <summary>
+        Set autostop mode. When autostop is OFF, the project plays endlessly in a loop.
+      </summary>
+      <param name = "slot">slot number / SunVox object ID</param >
+      <param name="autostop">0 - disable; 1 - enable</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_autostop">
+      <summary>
+        Get autostop mode. When autostop is OFF, the project plays endlessly in a loop.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>1 - autostop enabled; 0 - autostop disabled.</returns>
+    </Method>
+    <Method name = "end_of_song">
+      <summary>
+        Check if the project has finished playing.
+      </summary>
+      <param name="slot">slot number / SunVox object ID;</param>
+      <returns>0 - the project is playing now; 1 - the project is stopped now.</returns>
+    </Method>
+    <Method name = "rewind">
+      <summary>
+        Jump to the specified position (line number on the timeline).
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="line_num">line number on the timeline</param>
+      <returns>0 (success) or negative error code</returns>
+    </Method>
+    <Method name = "volume">
+      <summary>
+        Set the project volume.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="vol">volume from 0 (min) to 256 (max 100%); negative values are ignored</param>
+      <returns>previous volume or negative error code.</returns>
+    </Method>
+    <Method name = "get_current_line">
+      <summary>
+        Get current (real time) line number on the timeline.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>current line number (playback position) on the timeline.</returns>
+    </Method>
+    <Method name = "get_current_line2">
+      <summary>
+        Get current line in fixed point format 27.5.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>current line number (playback position) on the timeline.</returns>
+    </Method>
+    <Method name = "get_current_signal_level">
+      <summary>
+        Get current (real time) signal level from the Output module.
+      </summary>
+      <param name = "slot">slot number / SunVox object ID</param>
+      <param name="channel">0 - left; 1 - right</param>
+      <returns>current signal level (from 0 to 255).</returns>
+    </Method>
+  </ProjectPlayback>
+  <ProjectInfo>
+    <Method name ="get_song_name">
+      <summary>
+        Get the project name.
+      </summary>
+      <param name = "slot" > slot number / SunVox object ID</param>
+      <returns>project name as ANSI string or NULL. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+    <Method name ="set_song_name">
+      <summary>
+        Set the project name.
+      </summary>
+      <param name = "slot" >slot number / SunVox object ID</param>
+      <param name = "name" >project name</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_song_bpm">
+      <summary>
+        Get the project BPM
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>project BPM</returns>
+    </Method>
+    <Method name ="get_song_tpl">
+      <summary>
+        Get the project TPL
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>project TPL</returns>
+    </Method>
+    <Method name ="get_song_length_frames">
+      <summary>
+        Get the the project length in frames.
+        A frame is a pair of audio signal samples (left and right channel amplitudes). A sample rate of 44100 Hz means that you hear 44100 frames per second.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>project length in frames or lines</returns>
+    </Method>
+    <Method name ="get_song_length_lines">
+      <summary>
+        Get the the project length in lines.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>project length in lines</returns>
+    </Method>
+    <Method name ="get_time_map">
+      <summary>
+        Get the project time map.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="start_line">first line to read (usually 0)</param>
+      <param name="len">number of lines to read</param>
+      <param name="dest">pointer to the buffer (size = len*sizeof(uint32_t)) for storing the map values</param>
+      <param name="flags">
+        SV_TIME_MAP_SPEED: dest[X] = BPM | ( TPL &lt;&lt; 16 ) (speed at the beginning of line X);
+        SV_TIME_MAP_FRAMECNT: dest[X] = frame counter at the beginning of line X.
+      </param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+  </ProjectInfo>
+  <Events>
+    <Method name ="set_event_t">
+      <summary>
+        Set the timestamp of events to be sent by sv_send_event().
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="set">1 - set timestamp; 0 - reset to automatic time setting (t will be ignored; default mode)</param>
+      <param name="t">timestamp (in system ticks) for all further events</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="send_event">
+      <summary>
+        Send an event (commands such as Note ON, Note OFF, controller change, etc.) to the SunVox engine for further processing.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="track_num">track number (within the virtual pattern)</param>
+      <param name="note">0 - nothing; 1..127 - note number; 128 - note off; 129, 130... - see NOTECMD_* defines</param>
+      <param name="vel">velocity 1..129; 0 - default</param>
+      <param name="module">0 (empty) or module number + 1 (1..65535)</param>
+      <param name="ctl">0xCCEE; CC - controller number (1..255); EE - effect</param>
+      <param name="ctl_val">value (0..32768) of the controller CC or parameter (0..65535) of the effect EE</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+  </Events>
+  <Modules>
+    <Method name ="new_module">
+      <summary>
+        Create a new module.
+        USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="type">string with module type; example: "Sampler"</param>
+      <param name="name">module name</param>
+      <param name="x">module coordinates; center of the module view = 512,512; normal working area: 0,0 ... 1024,1024</param>
+      <param name="y">module coordinates; center of the module view = 512,512; normal working area: 0,0 ... 1024,1024</param>
+      <param name="z">layer number from 0 to 7</param>
+      <returns>the number of the newly created module, or negative error code.</returns>
+    </Method>
+    <Method name ="remove_module">
+      <summary>
+        Remove the specified module.
+        USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="connect_module">
+      <summary>
+        Connect two specified modules: source --> destination.
+        USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="source">source (module number)</param>
+      <param name="destination">destination (module number)</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="disconnect_module">
+      <summary>
+        Disconnect two specified modules: source --> destination.
+        USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="source">source (module number)</param>
+      <param name="destination">destination (module number)</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="load_module">
+      <summary>
+        Load a module or sample from file.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="fileName">file name</param>
+      <param name="x">module y coordinate</param>
+      <param name="y">module x coordinate</param>
+      <param name="z">layer number from 0 to 7</param>
+      <returns>the number of the newly created module, or negative error code.</returns>
+    </Method>
+    <Method name ="load_module_from_memory">
+      <summary>
+        Load a module or sample from memory.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="data">byte array with file contents</param>
+      <param name="data_size">number of bytes in the array</param>
+      <param name="x">module y coordinate</param>
+      <param name="y">module x coordinate</param>
+      <param name="z">layer number from 0 to 7</param>
+      <returns>the number of the newly created module, or negative error code.</returns>
+    </Method>
+    <Method name ="sampler_load">
+      <summary>
+        Load a sample (xi, wav, aiff, mp3, ogg (vorbis), flac) in an existing Sampler module.
+        For WAV and AIFF: only uncompressed PCM format is supported.
+        To replace the whole sampler - set sample_slot to -1.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">sampler module number</param>
+      <param name="fileName">file name</param>
+      <param name="sample_slot">slot number inside the Sampler, or -1 if you want to replace the whole module</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="sampler_load_from_memory">
+      <summary>
+        Load a sample (xi, wav, aiff, mp3, ogg (vorbis), flac) in an existing Sampler module.
+        For WAV and AIFF: only uncompressed PCM format is supported.
+        To replace the whole sampler - set sample_slot to -1.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">sampler module number</param>
+      <param name="data">byte array with file contents</param>
+      <param name="data_size">number of bytes in the array</param>
+      <param name="sample_slot">slot number inside the Sampler, or -1 if you want to replace the whole module</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="metamodule_load">
+      <summary>
+        Load a project (sunvox, mod, xm, midi) into a MetaModule.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">MetaModule number</param>
+      <param name="fileName">file name</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="metamodule_load_from_memory">
+      <summary>
+        Load a project (sunvox, mod, xm, midi) into a MetaModule.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">MetaModule number</param>
+      <param name="data">byte array with file contents</param>
+      <param name="data_size">number of bytes in the array</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="vplayer_load">
+      <summary>
+        Load an OGG Vorbis file into a Vorbis Player module.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">Vorbis Player module number</param>
+      <param name="fileName">file name</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="vplayer_load_from_memory">
+      <summary>
+        Load an OGG Vorbis file into a Vorbis Player module.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">Vorbis Player module number</param>
+      <param name="data">byte array with file contents</param>
+      <param name="data_size">number of bytes in the array</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_number_of_modules">
+      <summary>
+        Get the number of module slots (not the actual number of modules) in the project. The slot can be empty or it can contain a module. It is the smallest multiple of 4 that the highest module ID number fits into. For the number of real modules, use: SunVoxUtility.GetNumberOfModules.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>number of modules or negative error code.</returns>
+    </Method>
+    <Method name ="find_module">
+      <summary>
+        Find a module by name.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="name">module name</param>
+      <returns> module number or -1 (module not found).</returns>
+    </Method>
+    <Method name ="get_module_flags">
+      <summary>
+        Get flags of the specified module.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>set of flags SV_MODULE_FLAG_* or -1 (error).</returns>
+    </Method>
+    <Method name ="get_module_inputs">
+      <summary>
+        Get int[] arrays with the input/output links.
+        Number of input links = ( module_flags &amp; SV_MODULE_INPUTS_MASK ) >> SV_MODULE_INPUTS_OFF
+      (this is not the actual number of connections: some links may be empty (value = -1))
+    </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>pointer to the int[] array with the input links or NULL.</returns>
+    </Method>
+    <Method name ="get_module_outputs">
+      <summary>
+        Get int[] arrays with the input/output links.
+        Number of output links = ( module_flags &amp; SV_MODULE_OUTPUTS_MASK ) >> SV_MODULE_OUTPUTS_OFF
+      (this is not the actual number of connections: some links may be empty (value = -1))
+    </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>pointer to the int[] array with the output links or NULL.</returns>
+    </Method>
+    <Method name ="get_module_type">
+      <summary>
+        Get the module type (string).
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>module type as ANSI string or NULL. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+    <Method name ="get_module_name">
+      <summary>
+        Get the module name.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>module name as ANSI string or NULL. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+    <Method name ="set_module_name">
+      <summary>
+        Set the module name.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="name">module name</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_xy">
+      <summary>
+        Get the module coordinates (XY) packed in a single uint32 value.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>
+        module coordinates ( x &amp; 0xFFFF ) | ( ( y &amp; 0xFFFF ) &lt;&lt; 16 )</returns>
+    </Method>
+    <Method name ="set_module_xy">
+      <summary>
+        Set the module coordinates.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="x">module x coordinate</param>
+      <param name="y">module y coordinate</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_color">
+      <summary>
+        Get the module color.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns> module color in the following format: 0xBBGGRR</returns>
+    </Method>
+    <Method name ="set_module_color">
+      <summary>
+        Set the module color.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="color">module color in the following format: 0xBBGGRR</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_finetune">
+      <summary>
+        Get the module relative note (transposition) and finetune (-256...0...256) packed in a single uint value.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>
+        module relative note (transposition) and finetune ( relnote &amp; 0xFFFF ) | ( ( finetune &amp; 0xFFFF ) &lt;&lt; 16 )</returns>
+    </Method>
+    <Method name ="set_module_finetune">
+      <summary>
+        Change the finetune of a module immediately.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="finetune">: -256 (-semitone) ... 0 ... 256 (+semitone)</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="set_module_relnote">
+      <summary>
+        Change the relative note of a module immediately.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="relative_note">&gt;0 - transpose up; &lt;0 - transpose down</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_scope2">
+      <summary>
+        Get the currently playing piece of sound from the output of the specified module. only usable for waveform visualisation due to system timing inaccuracy</summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="channel">0 - left, 1 - right</param>
+      <param name="dest_buf">pointer to the buffer (short type array) to store the audio fragment</param>
+      <param name="samples_to_read">the number of samples to read from the module's output buffer</param>
+      <returns>received number of samples (may be less or equal to samples_to_read)</returns>
+    </Method>
+    <Method name ="module_curve">
+      <summary>
+        Access to the curve values of the specified module.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="curve_num">curve number</param>
+      <param name="data">pointer to the destination or source buffer (array)</param>
+      <param name="len">number of items to read/write</param>
+      <param name="w">0 - read, 1 - write</param>
+      <returns>number of items processed successfully or negative error code.</returns>
+    </Method>
+    <Method name ="get_number_of_module_ctls">
+      <summary>
+        Get the number of the module controllers.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <returns>number of the module controllers or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_ctl_name">
+      <summary>
+        Get the name of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>
+      <returns>module name as ANSI string or NULL. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+    <Method name ="get_module_ctl_value">
+      <summary>
+        Get the value of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>
+      <param name="scaled">0 - real control value (0,1,2 etc.), might differ from value displayed in interface; 1 - scaled for the pattern column XXYY (0x0000...0x8000); 2 - value displayed in program interface</param>
+      <returns>value of the specified module controller.</returns>
+    </Method>
+    <Method name ="set_module_ctl_value">
+      <summary>
+        Send the value to the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>
+      <param name="val">value</param>
+      <param name="scaled">0 - real control value (0,1,2 etc.), might differ from value displayed in interface; 1 - scaled for the pattern column XXYY (0x0000...0x8000); 2 - value displayed in program interface</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name ="get_module_ctl_min">
+      <summary>
+        Get the minimum value of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>
+      <param name="scaled">0 - real control value (0,1,2 etc.), might differ from value displayed in interface; 1 - scaled for the pattern column XXYY (0x0000...0x8000); 2 - value displayed in program interface</param>
+      <returns>the minimum value of the specified module controller.</returns>
+    </Method>
+    <Method name ="get_module_ctl_max">
+      <summary>
+        Get the maximum value of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>
+      <param name="scaled">0 - real control value (0,1,2 etc.), might differ from value displayed in interface; 1 - scaled for the pattern column XXYY (0x0000...0x8000); 2 - value displayed in program interface</param>
+      <returns>the maximum value of the specified module controller.</returns>
+    </Method>
+    <Method name ="get_module_ctl_offset">
+      <summary>
+        Get display value offset of the specified module controller. Real value + offset = display value
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>      
+      <returns>display value offset of the specified module controller.</returns>
+    </Method>
+    <Method name ="get_module_ctl_type">
+      <summary>
+        Get the type of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>      
+      <returns>type of the specified module controller: 0 - normal, 1 - selector</returns>
+    </Method>
+    <Method name ="get_module_ctl_group">
+      <summary>
+        Get the group of the specified module controller.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="mod_num">module number</param>
+      <param name="ctl_num">controller number (from 0)</param>      
+      <returns>group of the specified module controller.</returns>
+    </Method>
+  </Modules>
+  <Patterns>
+    <Method name = "new_pattern">
+      <summary>
+        Create a new pattern. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="clone">parent pattern number, if we need a linked clone, or -1</param>
+      <param name="x">line number (horizontal position on the timeline)</param>
+      <param name="y">vertical position on the timeline</param>
+      <param name="tracks">number of tracks</param>
+      <param name="lines">number of lines</param>
+      <param name="icon_seed">some unique number for the icon generator</param>
+      <param name="name">pattern name</param>
+      <returns>the number of the newly created pattern, or negative error code.</returns>
+    </Method>
+    <Method name = "remove_pattern">
+      <summary>
+        Remove the specified module. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_number_of_patterns">
+      <summary>
+        Get the number of pattern slots (not the actual number of patterns) in the project. The slot can be empty or it can contain a pattern. It is the smallest multiple of 16 the number of patterns fits into. For the number of real patterns, use: SunVoxUtility.GetNumberOfPatterns.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <returns>number of patterns or negative error code.</returns>
+    </Method>
+    <Method name = "find_pattern">
+      <summary>
+        Find a pattern by name.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="name">pattern name</param>
+      <returns>pattern number or -1 (pattern not found).</returns>
+    </Method>
+    <Method name = "get_pattern_x">
+      <summary>
+        Get the X (line number) coordinate of the pattern on the timeline.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>X (line number) coordinate of the pattern on the timeline.</returns>
+    </Method>
+    <Method name = "get_pattern_y">
+      <summary>
+        Get the Y coordinate of the pattern on the timeline.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>Y coordinate of the pattern on the timeline.</returns>
+    </Method>
+    <Method name = "set_pattern_xy">
+      <summary>
+        Set pattern position. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <param name="x">line number (horizontal position on the timeline)</param>
+      <param name="y">vertical position on the timeline</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_pattern_tracks">
+      <summary>
+        Get the number of tracks of the specified pattern.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>number of tracks or negative error code.</returns>
+    </Method>
+    <Method name = "get_pattern_lines">
+      <summary>
+        Get the number of lines of the specified pattern.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>number of lines or negative error code.</returns>
+    </Method>
+    <Method name = "set_pattern_size">
+      <summary>
+        Set pattern size. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <param name="tracks">number of tracks or -1 (unchanged)</param>
+      <param name="lines">number of lines or -1 (unchanged)</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_pattern_name">
+      <summary>
+        Get the name of the specified pattern.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>pattern name as ANSI string or NULL. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+    <Method name = "set_pattern_name">
+      <summary>
+        Set pattern name. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <param name="name">pattern name</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_pattern_data">
+      <summary>
+        Access the contents of the pattern (array of events: notes, effects, etc.).
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <returns>pointer to an array with the contents of the pattern or NULL. Use Marshal.PtrToStructure to read and Marshal.StructureToPtr to write pattern data.</returns>
+    </Method>
+    <Method name ="set_pattern_event">
+      <summary>
+        Write the pattern event to the cell at the specified line and track. Only non-negative values will be written to the pattern.
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat">pattern number</param>
+      <param name="track">track number</param>
+      <param name="line">line number</param>
+      <param name="nn">note</param>
+      <param name="vv">velocity</param>
+      <param name="mm">module number + 1</param>
+      <param name="ccee">controller + effect code (0xCCEE)</param>
+      <param name="xxyy">controller value or effect parameter (0xXXYY)</param>
+      <returns>0 (success) or negative error code.</returns>
+    </Method>
+    <Method name = "get_pattern_event">
+      <summary>
+        Read a pattern event at the specified line and track.
+      </summary>
+      <param name = "slot" > slot number / SunVox object ID</param>
+      <param name = "pat" > pattern number</param>
+      <param name = "track" > track number</param>
+      <param name = "line" > line number</param>
+      <param name = "column" > column to read from: 0 - note(NN); 1 - velocity(VV); 2 - module(MM); 3 - controller number or effect(CCEE); 4 - controller value or effect parameter(XXYY);</param>
+      <returns>return value: value of the specified field or negative error code.</returns>
+    </Method>
+    <Method name = "pattern_mute">
+      <summary>
+        Mute / unmute the specified pattern. USE LOCK/UNLOCK!
+      </summary>
+      <param name="slot">slot number / SunVox object ID</param>
+      <param name="pat_num">pattern number</param>
+      <param name="mute">1 - mute, 0 - unmute</param>
+      <returns>previous state (1 - muted; 0 - unmuted) or negative error code.</returns>
+    </Method>     
+  </Patterns>
+  <Other>
+    <Method name = "get_ticks">
+      <summary>
+        Get current system tick counter. These ticks are required for parameters of functions such as sv_audio_callback() and sv_set_event_t().
+      </summary>
+      <returns>current tick counter (from 0 to 0xFFFFFFFF).</returns>
+    </Method>
+    <Method name = "get_ticks_per_second">
+      <summary>
+        Get number of system ticks per second. These ticks are required for parameters of functions such as sv_audio_callback() and sv_set_event_t().
+      </summary>
+      <returns>number of system ticks per second.</returns>
+    </Method>
+    <Method name = "get_log">
+      <summary>
+        Get the latest messages from the log.
+      </summary>
+      <param name="size">max number of bytes to read</param>
+      <returns>pointer to the null-terminated string with the latest log messages in ANSI format. use Marshal.PtrToStringAnsi to convert to default string format.</returns>
+    </Method>
+  </Other>
+</Docs>

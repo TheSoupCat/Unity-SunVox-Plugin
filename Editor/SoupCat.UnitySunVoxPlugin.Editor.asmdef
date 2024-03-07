@@ -1,0 +1,18 @@
+{
+    "name": "SoupCat.UnitySunVoxPlugin.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e2f93c8fdd0fd8b46b5e4784e742d73d"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

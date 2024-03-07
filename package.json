@@ -1,0 +1,20 @@
+{
+  "name": "com.soupcat.unitysunvoxplugin",
+  "version": "1.0.0",
+  "displayName": "Unity-SunVox Plugin",
+  "description": "This package integrates the SunVox audio library into Unity.\nIt provides import and playback of SunVox projects out-of-the-box, as well as code and comments to help developers build their own implementation.",
+  "unity": "2022.3",
+  "author": {
+    "name": "SoupCat",
+    "url": "https://github.com/TheSoupCat"
+  },
+  "keywords": [
+    "SunVox",
+    "audio",
+    "sound",
+    "music",
+    "music tracker",
+    "integration"
+  ],
+  "hideInEditor": false
+}

@@ -1,0 +1,1 @@
+This package contains third-party software components, which are governed by the licenses in the Third party licenses folder.
